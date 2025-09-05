@@ -246,7 +246,7 @@
         <button class="spin-button" id="spin-button">
             <i class="fas fa-hand-pointer"></i> Girar
         </button>
-        <div class="attempts-counter">Intentos: <span id="attempts-count">0</span></div>
+        <div class="attempts-counter">Intentos: <span id="attempts-count">0</span>/30</div>
     </div>
 
     <div class="footer">
@@ -273,6 +273,7 @@
         const spinButton = document.getElementById('spin-button');
         const attemptsCountSpan = document.getElementById('attempts-count');
         let attemptsCount = 0;
+        const maxAttempts = 30;
 
         function getRandomSymbol() {
             return symbols[Math.floor(Math.random() * symbols.length)];
@@ -309,6 +310,14 @@
         }
         
         function spinReels() {
+            // Check if max attempts reached
+            if (attemptsCount >= maxAttempts) {
+                spinButton.disabled = true;
+                spinButton.textContent = 'Juego finalizado';
+                prizeBox.textContent = 'Gracias por participar';
+                return;
+            }
+            
             attemptsCount++;
             attemptsCountSpan.textContent = attemptsCount;
 
@@ -328,9 +337,32 @@
             let stopIndex = 0;
             const finalSymbols = [];
 
+            // Introduce a low probability for winning
+            const winChance = 0.05; 
+            const shouldWin = Math.random() < winChance;
+            const forcedSymbols = [];
+
+            if (shouldWin) {
+                const winType = Math.random() < 0.5 ? 3 : 4; // 50/50 chance for 3-of-a-kind or 4-of-a-kind
+                const winningSymbol = getRandomSymbol();
+                
+                for (let i = 0; i < winType; i++) {
+                    forcedSymbols.push(winningSymbol);
+                }
+                
+                while (forcedSymbols.length < 4) {
+                    let nonWinningSymbol = getRandomSymbol();
+                    if (nonWinningSymbol !== winningSymbol) {
+                        forcedSymbols.push(nonWinningSymbol);
+                    }
+                }
+                // Shuffle to make the winning position random
+                forcedSymbols.sort(() => Math.random() - 0.5);
+            }
+
             const stopInterval = setInterval(() => {
                 clearInterval(spinIntervals[stopIndex]);
-                const finalSymbol = getRandomSymbol();
+                const finalSymbol = shouldWin ? forcedSymbols[stopIndex] : getRandomSymbol();
                 reels[stopIndex].querySelector('span').textContent = finalSymbol;
                 reels[stopIndex].classList.add('stop');
                 reels[stopIndex].style.borderColor = 'var(--accent)';
@@ -354,6 +386,11 @@
                     } else {
                         prizeBox.textContent = finalPrize;
                         spinButton.disabled = false;
+                        if (attemptsCount >= maxAttempts) {
+                            spinButton.disabled = true;
+                            spinButton.textContent = 'Juego finalizado';
+                            prizeBox.textContent = 'Gracias por participar';
+                        }
                     }
                 }
             }, 500);
