@@ -256,13 +256,17 @@
 
     <script>
         const symbols = ['💊', '🏋️', '⚡', '💪', '🔥'];
-        const prizes = [
-            '2x1',
-            '1 suplemento gratis',
-            '2 suplementos gratis',
-            '20% de descuento en el producto que escojas',
-            '40% de descuento en el producto seleccionado'
-        ];
+        const prizes = {
+            'discounts': [
+                '20% de descuento en el producto que escojas',
+                '40% de descuento en el producto seleccionado'
+            ],
+            'supplements': [
+                '2x1',
+                '1 suplemento gratis',
+                '2 suplementos gratis'
+            ]
+        };
         const reels = [
             document.getElementById('reel1'),
             document.getElementById('reel2'),
@@ -285,32 +289,31 @@
                 counts[symbol] = (counts[symbol] || 0) + 1;
             });
 
-            // Check for 4 matching symbols (grand prize)
-            for (const symbol in counts) {
-                if (counts[symbol] === 4) {
-                    return `¡PREMIO MAYOR! 🎁 Te llevas 2 suplementos gratis (excepto el whey de 2kg).`;
+            const matchingSymbol = Object.keys(counts).find(symbol => counts[symbol] >= 3);
+            if (!matchingSymbol) {
+                return '¡Intenta otra vez!';
+            }
+            
+            if (counts[matchingSymbol] === 4) {
+                // Grand prize for 4-of-a-kind
+                return `¡PREMIO MAYOR! 🎁 Te llevas 2 suplementos gratis (excepto el whey de 2kg).`;
+            } else if (counts[matchingSymbol] === 3) {
+                // Regular prize for 3-of-a-kind, with discount preference
+                const prizeType = Math.random() < 0.8 ? 'discounts' : 'supplements';
+                const prizeList = prizes[prizeType];
+                const prizeIndex = Math.floor(Math.random() * prizeList.length);
+                let prize = prizeList[prizeIndex];
+
+                if (prize.includes('suplemento gratis')) {
+                    prize += ' (excepto el whey de 2kg)';
                 }
+                return prize;
             }
 
-            // Check for 3 matching symbols (regular prize)
-            for (const symbol in counts) {
-                if (counts[symbol] === 3) {
-                    const prizeIndex = Math.floor(Math.random() * prizes.length);
-                    let prize = prizes[prizeIndex];
-
-                    if (prize.includes('suplemento gratis')) {
-                        prize += ' (excepto el whey de 2kg)';
-                    }
-                    return prize;
-                }
-            }
-
-            // No prize
             return '¡Intenta otra vez!';
         }
         
         function spinReels() {
-            // Check if max attempts reached
             if (attemptsCount >= maxAttempts) {
                 spinButton.disabled = true;
                 spinButton.textContent = 'Juego finalizado';
@@ -337,32 +340,9 @@
             let stopIndex = 0;
             const finalSymbols = [];
 
-            // Introduce a low probability for winning
-            const winChance = 0.05; 
-            const shouldWin = Math.random() < winChance;
-            const forcedSymbols = [];
-
-            if (shouldWin) {
-                const winType = Math.random() < 0.5 ? 3 : 4; // 50/50 chance for 3-of-a-kind or 4-of-a-kind
-                const winningSymbol = getRandomSymbol();
-                
-                for (let i = 0; i < winType; i++) {
-                    forcedSymbols.push(winningSymbol);
-                }
-                
-                while (forcedSymbols.length < 4) {
-                    let nonWinningSymbol = getRandomSymbol();
-                    if (nonWinningSymbol !== winningSymbol) {
-                        forcedSymbols.push(nonWinningSymbol);
-                    }
-                }
-                // Shuffle to make the winning position random
-                forcedSymbols.sort(() => Math.random() - 0.5);
-            }
-
             const stopInterval = setInterval(() => {
                 clearInterval(spinIntervals[stopIndex]);
-                const finalSymbol = shouldWin ? forcedSymbols[stopIndex] : getRandomSymbol();
+                const finalSymbol = getRandomSymbol();
                 reels[stopIndex].querySelector('span').textContent = finalSymbol;
                 reels[stopIndex].classList.add('stop');
                 reels[stopIndex].style.borderColor = 'var(--accent)';
@@ -398,7 +378,6 @@
 
         spinButton.addEventListener('click', spinReels);
 
-        // Initial symbol load
         reels.forEach(reel => {
             reel.querySelector('span').textContent = getRandomSymbol();
         });
